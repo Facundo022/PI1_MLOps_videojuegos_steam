@@ -16,6 +16,9 @@ df_UserForGenre_parte_2 = pd.read_parquet("data/user_for_genre_part_2.parquet")
 df_UsersRecommend = pd.read_parquet("data/UsersRecommend.parquet")
 df_UsersWorstDeveloper = pd.read_parquet("data/UsersWorstDeveloper.parquet")
 df_Sentiment_Analysis = pd.read_parquet("data/sentiment_analysis.parquet")
+df_developer = pd.read_parquet("data/developer.parquet")
+df_userdata = pd.read_parquet('data/userdata.parquet')
+df_best_developer = pd.read_parquet('data/UsersbestDeveloper.parquet')
 
 
 @app.get(path="/", response_class=HTMLResponse, tags=["Home"])
@@ -52,8 +55,8 @@ def presentacion():
             <p>Bienvenido a la API de Steam donde se pueden hacer diferentes consultas sobre la plataforma de videojuegos.</p>
             <p>INSTRUCCIONES:</p>
             <p>Escriba <span style="background-color: lightgray;">/docs</span> a continuación de la URL actual de esta página para interactuar con la API</p>
-            <p> Visita mi perfil en <a href="https://www.linkedin.com/in/ingambcarlapezzone/"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-blue?style=flat-square&logo=linkedin"></a></p>
-            <p> El desarrollo de este proyecto esta en <a href="https://github.com/IngCarlaPezzone/PI1_MLOps_videojuegos"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-black?style=flat-square&logo=github"></a></p>
+            <p> Visita mi perfil en <a href="https://www.linkedin.com/in/facundo-nicolas-denis-60933b199/"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-blue?style=flat-square&logo=linkedin"></a></p>
+            <p> El desarrollo de este proyecto esta en <a href="https://github.com/Facundo022/PI1_MLOps_videojuegos_steam"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-black?style=flat-square&logo=github"></a></p>
         </body>
     </html>
     '''
@@ -67,6 +70,52 @@ Ingrese el Desarrollador en la caja de abajo.<br>
 Scrollear a "Resposes" para ver la cantidad de items y porcentaje de contenido Free por año según empresa de desarrollo.</font>""",
 tags=["Consultas Generales"],
 )
+
+
+### correccion, funciones 0.1
+
+
+@app.get("/developer")
+def developer( nombre_desarrollador):
+    
+    # Filtrar el DataFrame por el nombre del desarrollador
+    desarrollador_filtrado = df_developer[df_developer['developer'] == nombre_desarrollador]
+    
+    # Obtener la cantidad de juegos del desarrollador filtrado
+    cantidad_juegos = desarrollador_filtrado['Cantidad de Juegos por Developer'].iloc[0]
+    
+    # Obtener el porcentaje de juegos gratuitos del desarrollador filtrado
+    porcentaje_free = desarrollador_filtrado['Porcentaje de Juegos Gratuitos'].iloc[0]
+    
+    resultado = {
+        'Nombre del desarrollador': nombre_desarrollador,
+        'Cantidad de juegos desarrollados: ' : cantidad_juegos,
+        'Porcentaje de ellos free: ' : porcentaje_free
+    }
+    return resultado
+
+@app.get("/Userdata")
+def userdata(user_id):
+    # Filtrar el DataFrame por user_id
+    usuario_filtrado = df_userdata[df_userdata['user_id'] == user_id]
+    
+    # Obtener la cantidad de dinero gastado por el usuario
+    dinero_gastado = usuario_filtrado['total_price_por_usuario'].iloc[0]
+    
+    # Obtener el porcentaje de recomendación en base a reviews.recommend
+    porcentaje_recomendacion = usuario_filtrado['porcentaje_recomendacion'].iloc[0]
+    
+    # Obtener la cantidad de items
+    cantidad_items = usuario_filtrado['cantidad_total_juegos_por_usuario'].iloc[0]
+    
+    resultados = {
+        "El user_id: ": user_id,
+        "gasto en total: ": dinero_gastado,
+        "porcentaje de recomendacion": porcentaje_recomendacion,
+        "y compro en total:": cantidad_items
+    }
+    
+    return resultados
 
 
 # Primera funcion: PlaytimeGenre
@@ -134,6 +183,26 @@ def UserForGenre2(genero: str):
     })
 
     return df_result
+
+@app.get("/Best_developer")
+def best_developer_year( año : int ):
+    """
+    Funcion que devuelve el top 3 de desarrolladoras con juegos MENOS 
+    recomendados por usuarios para el año dado.
+    """
+    df_año2 = df_best_developer[df_best_developer["anio"]== año]
+    if type(año) != int:
+        return {"Debes colocar el año en entero, Ejemplo:2012"}
+    if año < df_best_developer["anio"].min() or año > df_best_developer["anio"].max():
+        return {"Año no encontrado "}
+    df_ordenado_recomendacion2 = df_año2.sort_values(by="num_reviews_positivas", ascending=False)
+    top_3_developers = df_ordenado_recomendacion2[["developer","num_reviews_positivas"]]
+    result4 = {
+        'Año': año,
+        'Top 3 Desarrolladoras mas Recomendados': top_3_developers.to_dict(orient="records")
+    }
+    return result4
+
 
 
 # Tercera funcion: UsersRecommend
